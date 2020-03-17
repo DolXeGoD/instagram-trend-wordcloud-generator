@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import os
 import re
 from time import sleep
 import requests
@@ -12,7 +13,7 @@ from wordcloud import WordCloud
 USER_AGENT = {'User-Agent' : 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_4) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/11.1 Safari/605.1.15'}
 FIND_TAG_REGEX = "#[A-z0-9_ㄱ-힣]+"
 FONT_PATH = "/Library/Fonts/AppleGothic.ttf"
-SEARCH_TARGET_TAG = "동산병원"
+SEARCH_TARGET_TAG = "부산대병원"
 LIMIT_TIME = 86400
 TAG_LIMIT_COUNT = 50
 
@@ -117,6 +118,13 @@ def main():
     plt.axis('off')
     plt.figure()
     plt.show()
+
+    if not (os.path.isdir("wordcloud_result")):
+        os.makedirs(os.path.join("wordcloud_result"))
+
+    file_name = "wc_result_of_{}".format(SEARCH_TARGET_TAG)
+    cloud.to_file("wordcloud_result/{}.png".format(file_name))
+
 
 if __name__ == '__main__':
     main()
