@@ -11,9 +11,10 @@ from wordcloud import WordCloud
 
 USER_AGENT = {'User-Agent' : 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_4) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/11.1 Safari/605.1.15'}
 FIND_TAG_REGEX = "#[A-z0-9_ㄱ-힣]+"
-FONT_PATH = "'/Library/Fonts/AppleGothic.ttf'"
-SEARCH_TARGET_TAG = ""
+FONT_PATH = "/Library/Fonts/AppleGothic.ttf"
+SEARCH_TARGET_TAG = "동산병원"
 LIMIT_TIME = 86400
+TAG_LIMIT_COUNT = 50
 
 instagram_tags = []
 _start_time = 0
@@ -60,6 +61,7 @@ def get_location_contents(json_container):
 def get_json(hashtag_param, end_cursor):
     if end_cursor == "":
         req_url = "https://www.instagram.com/explore/tags/" + str(hashtag_param) + "/?__a=1"
+
     else:
         paging_query_hash = "463d0b9e24ab084f46514747d53bcb0d"  ### constant value
         paging_param_first = 12
@@ -87,6 +89,7 @@ def get_json(hashtag_param, end_cursor):
 
 def main():
     global instagram_tags
+    global _start_time
 
     _start_time = int(time.time())
     pause.until(_start_time)
@@ -104,19 +107,16 @@ def main():
 
     instagram_tags = [word for word in instagram_tags]
     count = Counter(instagram_tags)
-    print(count)
 
-    common_tag_50 = count.most_common(50)
-    print(common_tag_50)
+    common_tag = count.most_common(TAG_LIMIT_COUNT)
 
     wc = WordCloud(font_path=FONT_PATH, background_color="white", width=800, height=600)
-    cloud = wc.generate_from_frequencies(dict(common_tag_50))
+    cloud = wc.generate_from_frequencies(dict(common_tag))
 
     plt.imshow(cloud)
     plt.axis('off')
     plt.figure()
     plt.show()
-
 
 if __name__ == '__main__':
     main()
