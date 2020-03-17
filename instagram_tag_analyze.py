@@ -13,7 +13,7 @@ from wordcloud import WordCloud
 USER_AGENT = {'User-Agent' : 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_4) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/11.1 Safari/605.1.15'}
 FIND_TAG_REGEX = "#[A-z0-9_ㄱ-힣]+"
 FONT_PATH = "/Library/Fonts/AppleGothic.ttf"
-SEARCH_TARGET_TAG = "부산대병원"
+SEARCH_TARGET_TAG = input("분석할 태그명을 입력해주세요 : ")
 LIMIT_TIME = 86400
 TAG_LIMIT_COUNT = 50
 
@@ -95,17 +95,20 @@ def main():
     _start_time = int(time.time())
     pause.until(_start_time)
     end_cursor = ""
-    
+
+    print("인스타그램에서 데이터 크롤링을 시작합니다...")
     while True:
         json_value = get_json(SEARCH_TARGET_TAG, end_cursor)
 
         end_cursor = get_location_contents(json_value)
 
         if end_cursor == "":
+            print("데이터 크롤링이 완료되었습니다.")
             break
 
         sleep(3)
 
+    print("워드클라우드 생성중...")
     instagram_tags = [word for word in instagram_tags]
     count = Counter(instagram_tags)
 
@@ -118,12 +121,14 @@ def main():
     plt.axis('off')
     plt.figure()
     plt.show()
+    print("워드클라우드 생성이 완료되었습니다.")
 
     if not (os.path.isdir("wordcloud_result")):
         os.makedirs(os.path.join("wordcloud_result"))
 
     file_name = "wc_result_of_{}".format(SEARCH_TARGET_TAG)
     cloud.to_file("wordcloud_result/{}.png".format(file_name))
+    print("디렉토리에 워드클라우드 이미지를 저장하였습니다.")
 
 
 if __name__ == '__main__':
