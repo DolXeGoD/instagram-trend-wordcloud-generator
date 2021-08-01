@@ -2,11 +2,11 @@
 import os
 import re
 from time import sleep
-import requests
 import urllib
 import time
-import pause
 from collections import Counter
+
+import requests
 import matplotlib.pyplot as plt
 from wordcloud import WordCloud
 
@@ -17,8 +17,7 @@ SEARCH_TARGET_TAG = input("분석할 태그명을 입력해주세요 : ")
 LIMIT_TIME = 86400
 TAG_LIMIT_COUNT = 50
 
-instagram_tags = []
-_start_time = 0
+INSTAGRAM_TAGS = []
 
 def remove_apostrophes(param):
     if "\'" in param:
@@ -29,7 +28,7 @@ def remove_apostrophes(param):
 
     return param
 
-def get_location_contents(json_container):
+def get_location_contents(json_container, start_time):
 
     json_hash_media = json_container["edge_hashtag_to_media"]
     content_page_info = json_hash_media["page_info"]
@@ -37,12 +36,12 @@ def get_location_contents(json_container):
     posts = json_hash_media["edges"]  # 콘텐츠 스토리지
     end_cursor = ""
 
-    if content_page_info["has_next_page"] != False:
+    if content_page_info["has_next_page"] is not False:
         end_cursor = content_page_info["end_cursor"]
 
     for post in posts:
 
-        comp_time = _start_time - int(post["node"]["taken_at_timestamp"])
+        comp_time = start_time - int(post["node"]["taken_at_timestamp"])
 
         if comp_time < LIMIT_TIME:
             if len(post["node"]["edge_media_to_caption"]["edges"]) > 0:
@@ -52,12 +51,13 @@ def get_location_contents(json_container):
 
                 for tag in tags:
                     tag_none_hashtag = tag.replace("#", "")
-                    instagram_tags.append(tag_none_hashtag)
+                    INSTAGRAM_TAGS.append(tag_none_hashtag)
         else:
             end_cursor = ""
             break
 
     return end_cursor
+
 
 def get_json(hashtag_param, end_cursor):
     if end_cursor == "":
@@ -88,19 +88,18 @@ def get_json(hashtag_param, end_cursor):
         if len(json_location["edge_hashtag_to_media"]) != 0:
             return json_location
 
-def main():
-    global instagram_tags
-    global _start_time
 
-    _start_time = int(time.time())
-    pause.until(_start_time)
+def main():
+    global INSTAGRAM_TAGS
+
+    start_time = int(time.time())
     end_cursor = ""
 
     print("인스타그램에서 데이터 크롤링을 시작합니다...")
     while True:
         json_value = get_json(SEARCH_TARGET_TAG, end_cursor)
 
-        end_cursor = get_location_contents(json_value)
+        end_cursor = get_location_contents(json_value, start_time)
 
         if end_cursor == "":
             print("데이터 크롤링이 완료되었습니다.")
@@ -109,21 +108,18 @@ def main():
         sleep(3)
 
     print("워드클라우드 생성중...")
-    instagram_tags = [word for word in instagram_tags]
-    count = Counter(instagram_tags)
-
+    count = Counter([word for word in INSTAGRAM_TAGS])
     common_tag = count.most_common(TAG_LIMIT_COUNT)
-
-    wc = WordCloud(font_path=FONT_PATH, background_color="white", width=800, height=600)
-    cloud = wc.generate_from_frequencies(dict(common_tag))
+    word_cloud = WordCloud(font_path=FONT_PATH, background_color="white", width=800, height=600)
+    cloud = word_cloud.generate_from_frequencies(dict(common_tag))
 
     plt.imshow(cloud)
     plt.axis('off')
     plt.figure()
-    plt.show()
+
     print("워드클라우드 생성이 완료되었습니다.")
 
-    if not (os.path.isdir("wordcloud_result")):
+    if not os.path.isdir("wordcloud_result"):
         os.makedirs(os.path.join("wordcloud_result"))
 
     file_name = "wc_result_of_{}".format(SEARCH_TARGET_TAG)
