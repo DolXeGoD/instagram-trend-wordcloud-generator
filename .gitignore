@@ -1,1 +1,4 @@
 .idea
+wordcloud_result/
+.vscode/*
+.DS_Store
