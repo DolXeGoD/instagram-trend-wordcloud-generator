@@ -7,6 +7,7 @@ from collections import Counter
 import requests
 import matplotlib.pyplot as plt
 from wordcloud import WordCloud
+import datetime
 
 # 유저 에이전트
 USER_AGENT = {'User-Agent' : 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_4) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/11.1 Safari/605.1.15'}
@@ -135,7 +136,7 @@ def main():
     if not os.path.isdir("wordcloud_result"):
         os.makedirs(os.path.join("wordcloud_result"))
 
-    file_name = "wc_result_of_{}".format(search_target_tag)
+    file_name = "wc_result_of_{0}_{1}".format(search_target_tag, datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
     cloud.to_file("wordcloud_result/{}.png".format(file_name))
 
     print("디렉토리에 워드클라우드 이미지를 저장하였습니다.")
