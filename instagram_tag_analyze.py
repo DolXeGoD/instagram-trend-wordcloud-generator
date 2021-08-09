@@ -5,12 +5,14 @@ import urllib
 import time
 from collections import Counter
 import requests
-import matplotlib.pyplot as plt
 from wordcloud import WordCloud
 import datetime
 
 # 유저 에이전트
-USER_AGENT = {'User-Agent' : 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_4) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/11.1 Safari/605.1.15'}
+USER_AGENT = {'User-Agent' : 'Mozilla/5.0 (iPhone; CPU iPhone OS 13_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Instagram 177.0.0.20.117 (iPhone12,1; iOS 13_6; ru_RU; ru-RU; scale=2.00; 828x1792; 275424340)'}
+
+# 크롤링 시작 시간
+STARTED_TIME = int(time.time())
 
 # 해쉬태그 탐색 정규식
 FIND_TAG_REGEX = "#[A-z0-9_ㄱ-힣]+"
@@ -44,18 +46,19 @@ def remove_apostrophes(param):
     return param
 
 
-def get_location_contents(json_container, start_time):
-    json_hash_media = json_container["edge_hashtag_to_media"]
-
-    content_page_info = json_hash_media["page_info"]
+def find_next_page_edges(edge_hashtag_to_media):
     end_cursor = ""
+    content_page_info = edge_hashtag_to_media["page_info"]
+
     if content_page_info["has_next_page"] is not False:
         end_cursor = content_page_info["end_cursor"]
 
-    posts = json_hash_media["edges"]  # 콘텐츠 스토리지
-    for post in posts:
+    return end_cursor
 
-        comp_time = start_time - int(post["node"]["taken_at_timestamp"])
+
+def find_hashtag_in_post(posts):
+    for post in posts:
+        comp_time = STARTED_TIME - int(post["node"]["taken_at_timestamp"])
 
         if comp_time < LIMIT_TIME:
             if len(post["node"]["edge_media_to_caption"]["edges"]) > 0:
@@ -67,10 +70,9 @@ def get_location_contents(json_container, start_time):
                     tag_none_hashtag = tag.replace("#", "")
                     INSTAGRAM_TAGS.append(tag_none_hashtag)
         else:
-            end_cursor = ""
-            break
+            return False
 
-    return end_cursor
+    return True
 
 
 def get_json(search_target_tag, end_cursor):
@@ -103,36 +105,7 @@ def get_json(search_target_tag, end_cursor):
             return json_location
 
 
-def main():
-    search_target_tag = input("분석할 태그명을 입력해주세요 : ")
-
-    start_time = int(time.time())
-    end_cursor = ""
-
-    print("인스타그램에서 데이터 크롤링을 시작합니다...")
-    while True:
-        json_value = get_json(search_target_tag, end_cursor)
-
-        end_cursor = get_location_contents(json_value, start_time)
-
-        if end_cursor == "":
-            print("데이터 크롤링이 완료되었습니다.")
-            break
-
-        time.sleep(3)
-
-    print("워드클라우드 생성중...")
-    count = Counter([word for word in INSTAGRAM_TAGS])
-    common_tag = count.most_common(TAG_LIMIT_COUNT)
-    word_cloud = WordCloud(font_path=FONT_PATH, background_color="white", width=800, height=600)
-    cloud = word_cloud.generate_from_frequencies(dict(common_tag))
-
-    plt.imshow(cloud)
-    plt.axis('off')
-    plt.figure()
-
-    print("워드클라우드 생성이 완료되었습니다.")
-
+def save_word_cloud_to_file(search_target_tag, cloud):
     if not os.path.isdir("wordcloud_result"):
         os.makedirs(os.path.join("wordcloud_result"))
 
@@ -140,6 +113,38 @@ def main():
     cloud.to_file("wordcloud_result/{}.png".format(file_name))
 
     print("디렉토리에 워드클라우드 이미지를 저장하였습니다.")
+
+
+def generate_word_cloud():
+    most_common_tag = Counter(INSTAGRAM_TAGS).most_common(TAG_LIMIT_COUNT)
+    word_cloud = WordCloud(font_path=FONT_PATH, background_color="white", width=800, height=600)
+    cloud = word_cloud.generate_from_frequencies(dict(most_common_tag))
+
+    print("워드클라우드 생성이 완료되었습니다.")
+
+    return cloud
+
+
+def main():
+    search_target_tag = input("분석할 태그명을 입력해주세요 : ")
+
+    end_cursor = ""
+    print("인스타그램에서 데이터 크롤링을 시작합니다...")
+    while True:
+        json_value = get_json(search_target_tag, end_cursor)
+
+        end_cursor = find_next_page_edges(json_value["edge_hashtag_to_media"])
+        is_continue = find_hashtag_in_post(json_value["edge_hashtag_to_media"]["edges"])
+
+        if end_cursor == "" or is_continue is False:
+            print("데이터 크롤링이 완료되었습니다.")
+            break
+
+        time.sleep(3)
+
+    print("워드클라우드 생성중...")
+    cloud = generate_word_cloud()
+    save_word_cloud_to_file(search_target_tag, cloud)
 
 
 if __name__ == '__main__':
