@@ -36,6 +36,9 @@ PAGING_QUERY_HASH = "463d0b9e24ab084f46514747d53bcb0d"
 # 추출된 해쉬태그를 저장하는 리스트
 INSTAGRAM_TAGS = []
 
+# 총 크롤링 한 포스트 수
+POST_COUNT = 0
+
 def remove_apostrophes(param):
     if "\'" in param:
         param = param.replace("\'", "")
@@ -57,10 +60,14 @@ def find_next_page_edges(edge_hashtag_to_media):
 
 
 def find_hashtag_in_post(posts):
+    global POST_COUNT
+
     for post in posts:
         comp_time = STARTED_TIME - int(post["node"]["taken_at_timestamp"])
 
         if comp_time < LIMIT_TIME:
+            POST_COUNT += 1
+
             if len(post["node"]["edge_media_to_caption"]["edges"]) > 0:
                 content = str(post["node"]["edge_media_to_caption"]["edges"][0]["node"]["text"])
                 tag_regex = re.compile(FIND_TAG_REGEX)
@@ -142,6 +149,7 @@ def main():
 
         time.sleep(3)
 
+    print("총 " + str(POST_COUNT) + " 개의 포스트가 크롤링 되었습니다.")
     print("워드클라우드 생성중...")
     cloud = generate_word_cloud()
     save_word_cloud_to_file(search_target_tag, cloud)
